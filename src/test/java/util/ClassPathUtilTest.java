@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class ClassPathUtilTest {
     @Test
@@ -15,7 +17,7 @@ public class ClassPathUtilTest {
         List<String> expectedClassNames = new ArrayList<String>();
         expectedClassNames.add("testpackage.Demo1");
         expectedClassNames.add("testpackage.nested.Demo2");
-        assertEquals(expectedClassNames, classNames);
-    }
 
+        assertTrue(classNames.containsAll(expectedClassNames));
+    }
 }
