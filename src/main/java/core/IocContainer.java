@@ -2,7 +2,7 @@ package core;
 
 import core.classfilter.ClassFilter;
 import core.classfilter.ClazzAnnotationFilter;
-import uitl.ClassPathUtil;
+import util.ClassPathUtil;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
