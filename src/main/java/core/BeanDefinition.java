@@ -35,7 +35,7 @@ public class BeanDefinition {
 
     public Object getBean() throws Exception {
         if(!isInitialized())
-            initBean();
+            init();
         return prototypeScope ? newInstance() : instance;
     }
 
