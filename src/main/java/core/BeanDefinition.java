@@ -1,8 +1,12 @@
 package core;
 
+import com.sun.xml.internal.ws.util.StringUtils;
+
 import javax.inject.Inject;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +26,41 @@ public class BeanDefinition {
     }
 
     private void initBean() throws Exception {
+        initConstructorInjection();
+        initSetterInjectionOnField();
+        initSetterInjectionOnSetter();
+    }
+
+    private void initSetterInjectionOnSetter() throws Exception {
+        for (Method declaredMethod : clazz.getDeclaredMethods()) {
+            if(declaredMethod.isAnnotationPresent(Inject.class)) {
+                if(declaredMethod.getName().matches("set[A-Z].*]")) {
+                   throw new Exception(declaredMethod.getName() + " doesn't look like a setter");
+                }
+                Class<?>[] parameterTypes = declaredMethod.getParameterTypes();
+                if(parameterTypes.length != 1) {
+                    throw new Exception(declaredMethod.getName() + " should have and only have one parameter");
+                }
+                declaredMethod.invoke(instance, container.getBeanByCompatibleType(parameterTypes[0]));
+            }
+        }
+    }
+
+    private void initSetterInjectionOnField() throws Exception {
+        for (Field declaredField : clazz.getDeclaredFields()) {
+            if(declaredField.isAnnotationPresent(Inject.class)) {
+                injectField(declaredField);
+            }
+        }
+    }
+
+    private void injectField(Field declaredField) throws Exception {
+        String name = declaredField.getName();
+        Method method = clazz.getMethod("set" + StringUtils.capitalize(name), declaredField.getType());
+        method.invoke(instance, container.getBeanByCompatibleType(declaredField.getType()));
+    }
+
+    private void initConstructorInjection() throws Exception {
         Constructor[] constructors = filterWithInjectAnnotation(clazz.getConstructors());
         if(constructors.length == 0) {
             instance = clazz.newInstance();
@@ -48,7 +87,7 @@ public class BeanDefinition {
         Class[] parameterTypes = constructor.getParameterTypes();
         List<Object> params = new ArrayList<Object>();
         for (Class type : parameterTypes) {
-            params.add(container.getBean(type));
+            params.add(container.getBeanByCompatibleType(type));
         }
         initInstanceWithParams(params, constructor);
     }

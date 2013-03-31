@@ -4,6 +4,7 @@ import core.classfilter.ClassFilter;
 import core.classfilter.ClazzAnnotationFilter;
 import util.ClassPathUtil;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,7 +20,12 @@ public class IocContainer {
         init();
     }
 
-    public Object getBean(Class type) throws Exception {
+    public <T> T getBean(Class<T> type) throws Exception {
+        if(Modifier.isAbstract(type.getModifiers()) || type.isInterface()) throw new Exception("Cannot get bean with type of Abstract class or Interface");
+        return (T) getBeanByCompatibleType(type);
+    }
+
+    public Object getBeanByCompatibleType(Class type) throws Exception {
         for (BeanDefinition definition : definitions) {
             if(definition.assignableTo(type)) {
                 return definition.getBean();
