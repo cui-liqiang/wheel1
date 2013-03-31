@@ -1,5 +1,6 @@
 package core;
 
+import javax.inject.Inject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ public class BeanDefinition {
     }
 
     private void initBean() throws Exception {
-        Constructor[] constructors = clazz.getConstructors();
+        Constructor[] constructors = filterWithInjectAnnotation(clazz.getConstructors());
         if(constructors.length == 0) {
             instance = clazz.newInstance();
         } else if(constructors.length == 1) {
@@ -31,6 +32,16 @@ public class BeanDefinition {
                     + clazz.getName() +
                     " have " + constructors.length);
         }
+    }
+
+    private Constructor[] filterWithInjectAnnotation(Constructor[] constructors) {
+        List<Constructor> filtered = new ArrayList<Constructor>();
+        for (Constructor constructor : constructors) {
+            if(constructor.isAnnotationPresent(Inject.class)) {
+                filtered.add(constructor);
+            }
+        }
+        return filtered.toArray(new Constructor[0]);
     }
 
     private void initInstanceWithConstructor(Constructor constructor) throws Exception {
