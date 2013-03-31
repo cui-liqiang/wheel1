@@ -1,13 +1,12 @@
 package core;
 
 import org.junit.Test;
-import testpackage.Demo1;
-import testpackage.InjectAnnotationOnConstructor;
-import testpackage.SetterInject;
-import testpackage.SetterInjectOnMethod;
+import testpackage.*;
 import testpackage.nested.Demo2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 
 public class IocContainerTest {
     IocContainer container;
@@ -39,5 +38,16 @@ public class IocContainerTest {
     public void should_inject_field_from_setter_if_annotated_on_setter() throws Exception {
         SetterInjectOnMethod bean = container.getBean(SetterInjectOnMethod.class);
         assertEquals(Demo2.TEST_VALUE, bean.getDemo().getValue());
+    }
+
+    @Test
+    public void beans_should_be_singleton_by_default() throws Exception {
+        assertSame(container.getBean(Demo1.class), container.getBean(Demo1.class));
+    }
+
+    @Test
+    public void beans_should_be_different_instance_if_annotated_with_prototype() throws Exception {
+        PrototypeTypeClass bean = container.getBean(PrototypeTypeClass.class);
+        assertNotSame(bean, container.getBean(PrototypeTypeClass.class));
     }
 }
