@@ -18,8 +18,9 @@ public class XmlBeanDefinitionParser {
     private static final String CONSTRUCTOR_ARG = "constructor-arg";
     private static final String VALUE = "value";
     private static final String REF = "ref";
+    private static final String PROPERTY = "property";
 
-    public List<BeanDefinition> parse(String resource) throws Exception, ClassNotFoundException {
+    public List<BeanDefinition> parse(String resource) throws Exception {
         SAXReader reader = new SAXReader();
 
         Document doc = reader.read(this.getClass().getClassLoader().getResourceAsStream(resource));
@@ -36,7 +37,8 @@ public class XmlBeanDefinitionParser {
             String scope = nullOrValue(beanDesc.attribute("scope"));
 
             List<ParamDesc> consParams = extractConsParams(beanDesc);
-            Map<String, ParamDesc> setterParams = new HashMap<String, ParamDesc>();
+            Map<String, ParamDesc> setterParams = extractSetterParams(beanDesc);
+
             definitions.add(new XmlBeanDefinition(id,
                                                   Class.forName(className),
                                                   scope,
@@ -44,6 +46,23 @@ public class XmlBeanDefinitionParser {
                                                   setterParams));
         }
         return definitions;
+    }
+
+    private Map<String, ParamDesc> extractSetterParams(Element beanDesc) throws Exception {
+        Map<String, ParamDesc> paramParams = new HashMap<String, ParamDesc>();
+
+        List elements = beanDesc.elements(PROPERTY);
+        for (Object o : elements) {
+            Element element = (Element) o;
+            Attribute name = element.attribute("name");
+            Attribute ref = element.attribute("ref");
+
+            Assert(name != null && ref != null, "For setter injection, \"name\" and \"ref\" attributes are needed.");
+
+            paramParams.put(name.getValue(), new RefParamDesc(ref.getValue()));
+        }
+
+        return paramParams;
     }
 
     private List<ParamDesc> extractConsParams(Element beanDesc) throws Exception {

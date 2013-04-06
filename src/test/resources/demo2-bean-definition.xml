@@ -3,4 +3,20 @@
     <bean id="NoComponent" class="testpackage.NoComponentAnnotation">
         <constructor-arg value="5" />
     </bean>
+
+    <bean id="demo2" class="testpackage.nested.Demo2">
+    </bean>
+
+    <bean id="demo1" class="testpackage.Demo1" >
+        <constructor-arg ref="demo2" />
+    </bean>
+
+    <bean id="setterInject" class="testpackage.SetterInject" >
+        <property name="demo" ref="demo2" />
+    </bean>
+
+    <bean id="prototype" class="testpackage.SetterInject" scope="prototype" >
+        <property name="demo" ref="demo2" />
+    </bean>
+
 </beans>

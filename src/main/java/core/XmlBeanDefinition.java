@@ -1,6 +1,9 @@
 package core;
 
+import com.sun.xml.internal.ws.util.StringUtils;
+
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +11,6 @@ import java.util.Map;
 import static util.AssertUtil.Assert;
 
 public class XmlBeanDefinition extends BeanDefinition {
-    private final String id;
     private final List<ParamDesc> consParams;
     private final Map<String, ParamDesc> setterParams;
 
@@ -28,7 +30,7 @@ public class XmlBeanDefinition extends BeanDefinition {
         Class[] parameterTypes = constructor.getParameterTypes();
 
         for(int i = 0;i < parameterTypes.length;i++) {
-            values.add(consParams.get(i).getValue(parameterTypes[i]));
+            values.add(consParams.get(i).getValue(parameterTypes[i], container));
         }
 
         return values;
@@ -43,6 +45,30 @@ public class XmlBeanDefinition extends BeanDefinition {
 
     @Override
     protected void initSetterInjection(IocContainer container, Object instance) throws Exception {
+        for (Map.Entry<String, ParamDesc> entry : setterParams.entrySet()) {
+            String name = entry.getKey();
+            ParamDesc refId = entry.getValue();
+
+            String methodName = "set" + StringUtils.capitalize(name);
+            Method method = filterMethodByName(clazz.getMethods(), methodName);
+            Assert(method != null, "Cannot find method \"" + methodName + "\" in class " + clazz.getName() + "for injection");
+
+            method.invoke(instance, refId.getValue(method.getParameterTypes()[0], container));
+        }
+    }
+
+    private Method filterMethodByName(Method[] methods, String methodName) throws Exception {
+        Method foundMethod = null;
+        for (Method method : methods) {
+            if(method.getName().equals(methodName) && method.getParameterTypes().length == 1) {
+                if(foundMethod != null) {
+                    throw new Exception("Found more than one \"" + methodName + "\" method with one parameter in class "
+                            + clazz.getName() +". Cannot determine which one to use for injection");
+                }
+                foundMethod = method;
+            }
+        }
+        return foundMethod;
     }
 
     private Constructor findConstructorWithParaNum(int size) throws Exception {

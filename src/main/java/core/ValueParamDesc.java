@@ -10,7 +10,7 @@ public class ValueParamDesc implements ParamDesc {
     }
 
     @Override
-    public Object getValue(Class parameterType) throws Exception {
+    public Object getValue(Class parameterType, IocContainer container) throws Exception {
         Assert(parameterType.isPrimitive(), "Cannot convert a string value(\"" + value + "\") to type: " + parameterType.getName());
 
         if(parameterType.equals(int.class)) {

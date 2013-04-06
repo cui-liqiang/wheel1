@@ -1,5 +1,6 @@
 package core;
 
+import core.bean.parsers.XmlBeanDefinitionParser;
 import core.classfilter.ClassFilter;
 import core.classfilter.ClazzAnnotationFilter;
 import util.ClassPathUtil;
@@ -11,13 +12,20 @@ import java.util.List;
 public class IocContainer {
     private List<BeanDefinition> definitions = new LinkedList<BeanDefinition>();
     private ClassFilter annotationFilter = new ClazzAnnotationFilter();
+    private XmlBeanDefinitionParser parser = new XmlBeanDefinitionParser();
 
     public IocContainer(String packageName) throws Exception {
-        init(packageName);
+        initAnnotatedBeanDefinitions(packageName);
     }
 
     public IocContainer(String packageName, String configFile) throws Exception {
-        this(packageName);
+        initAnnotatedBeanDefinitions(packageName);
+        initXmlBeanDefinitions(configFile);
+    }
+
+    private void initXmlBeanDefinitions(String configFile) throws Exception {
+        if(configFile == null) return;
+        definitions.addAll(parser.parse(configFile));
     }
 
     public <T> T getBean(Class<T> type) throws Exception {
@@ -34,7 +42,7 @@ public class IocContainer {
         throw new Exception("Cannot find a bean with type " + type.getName() + " existing. Maybe you forget to annotate it with @Component?");
     }
 
-    private void init(String packageName) throws Exception {
+    private void initAnnotatedBeanDefinitions(String packageName) throws Exception {
         for (String className : ClassPathUtil.getClassNamesInPackage(packageName)) {
             Class<?> clazz = Class.forName(className);
             if(annotationFilter.match(clazz)) continue;
@@ -44,5 +52,14 @@ public class IocContainer {
         for (BeanDefinition definition : definitions) {
             definition.init(this);
         }
+    }
+
+    public Object getBeanById(String ref) throws Exception {
+        for (BeanDefinition definition : definitions) {
+            if(definition.matchId(ref)) {
+                return definition.getBean(this);
+            }
+        }
+        throw new Exception("Cannot find a bean with id " + ref + " existing. Maybe you forget to config it in xml or in @Component");
     }
 }

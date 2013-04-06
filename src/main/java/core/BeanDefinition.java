@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class BeanDefinition {
+    protected String id;
     protected Class clazz;
     private Object instance = null;
     protected boolean prototypeScope = false;
@@ -32,6 +33,10 @@ public abstract class BeanDefinition {
         if(!isInitialized())
             init(container);
         return prototypeScope ? newInstance(container) : instance;
+    }
+
+    public boolean matchId(String id) {
+        return this.id.equals(id);
     }
 
     private boolean isInitialized() {
