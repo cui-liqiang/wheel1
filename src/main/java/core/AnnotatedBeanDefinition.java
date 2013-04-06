@@ -1,9 +1,12 @@
 package core;
 
 import com.sun.xml.internal.ws.util.StringUtils;
+import core.annotation.Component;
+import core.annotation.Qualified;
 import core.scopes.Prototype;
 
 import javax.inject.Inject;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -11,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AnnotatedBeanDefinition extends BeanDefinition {
-    private Object instance = null;
     private List<Field> injectedFields = new ArrayList<Field>();
     private List<Method> injectedSetter = new ArrayList<Method>();
 
@@ -21,15 +23,13 @@ public class AnnotatedBeanDefinition extends BeanDefinition {
     }
 
     private void extractMetaData() throws Exception {
-        id = clazz.getName() + "instance";
-        prototypeScope = clazz.isAnnotationPresent(Prototype.class);
+        extractId();
+        extractScope();
+        extractInjectField();
+        extractInjectSetter();
+    }
 
-        for (Field declaredField : clazz.getDeclaredFields()) {
-            if(declaredField.isAnnotationPresent(Inject.class)) {
-                injectedFields.add(declaredField);
-            }
-        }
-
+    private void extractInjectSetter() throws Exception {
         for (Method declaredMethod : clazz.getDeclaredMethods()) {
             if(declaredMethod.isAnnotationPresent(Inject.class)) {
                 if(declaredMethod.getName().matches("set[A-Z].*]")) {
@@ -40,10 +40,21 @@ public class AnnotatedBeanDefinition extends BeanDefinition {
         }
     }
 
-    protected Object newInstance(IocContainer container) throws Exception {
-        Object instance = initConstructorInjection(container);
-        initSetterInjection(container, instance);
-        return instance;
+    private void extractInjectField() {
+        for (Field declaredField : clazz.getDeclaredFields()) {
+            if(declaredField.isAnnotationPresent(Inject.class)) {
+                injectedFields.add(declaredField);
+            }
+        }
+    }
+
+    private void extractScope() {
+        prototypeScope = clazz.isAnnotationPresent(Prototype.class);
+    }
+
+    private void extractId() {
+        String id = ((Component) clazz.getAnnotation(Component.class)).value();
+        this.id = id.equals("") ? clazz.getName() + "instance" : id;
     }
 
     @Override
@@ -58,7 +69,12 @@ public class AnnotatedBeanDefinition extends BeanDefinition {
             if(parameterTypes.length != 1) {
                 throw new Exception(setter.getName() + " should have and only have one parameter");
             }
-            setter.invoke(instance, container.getBeanByCompatibleType(parameterTypes[0]));
+
+            Qualified qualified = setter.getAnnotation(Qualified.class);
+
+            setter.invoke(instance,
+                          qualified != null ? container.getBeanById(qualified.id())
+                                            : container.getBeanByCompatibleType(parameterTypes[0]));
         }
     }
 
@@ -71,16 +87,39 @@ public class AnnotatedBeanDefinition extends BeanDefinition {
     private void injectField(Object instance, Field declaredField, IocContainer container) throws Exception {
         String name = declaredField.getName();
         Method method = clazz.getMethod("set" + StringUtils.capitalize(name), declaredField.getType());
-        method.invoke(instance, container.getBeanByCompatibleType(declaredField.getType()));
+
+        Qualified qualified = declaredField.getAnnotation(Qualified.class);
+
+        method.invoke(instance,
+                      qualified != null ? container.getBeanById(qualified.id())
+                                        : container.getBeanByCompatibleType(declaredField.getType()));
     }
 
     @Override
     protected List<Object> determineConsParams(IocContainer container, Constructor constructor) throws Exception {
         List<Object> params = new ArrayList<Object>();
+        Annotation[][] parameterAnnotations = constructor.getParameterAnnotations();
+
+        int paramPos = 0;
         for (Class type : constructor.getParameterTypes()) {
-            params.add(container.getBeanByCompatibleType(type));
+            params.add(getParam(container, type, parameterAnnotations[paramPos]));
+            paramPos++;
         }
         return params;
+    }
+
+    private Qualified getQualifiedAnnotation(Annotation[] parameterAnnotations) {
+        for (Annotation parameterAnnotation : parameterAnnotations) {
+            if(parameterAnnotation instanceof Qualified)
+                return (Qualified)parameterAnnotation;
+        }
+        return null;
+    }
+
+    private Object getParam(IocContainer container, Class type, Annotation[] parameterAnnotation) throws Exception {
+        Qualified qualified = getQualifiedAnnotation(parameterAnnotation);
+        return qualified != null ? container.getBeanById(qualified.id())
+                : container.getBeanByCompatibleType(type);
     }
 
     @Override

@@ -2,17 +2,16 @@ package core;
 
 import org.junit.Test;
 import testpackage.*;
+import testpackage.BeanWithId;
 import testpackage.nested.Demo2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.*;
 
-public class IocContainerTest {
+public class IocContainerWithAnnotationTest {
     IocContainer container;
 
-    public IocContainerTest() throws Exception {
-        container = new IocContainer("testpackage");
+    public IocContainerWithAnnotationTest() throws Exception {
+        container = new IocContainerBuilder().withPackageName("testpackage").build();
     }
 
     @Test
@@ -49,5 +48,35 @@ public class IocContainerTest {
     public void beans_should_be_different_instance_if_annotated_with_prototype() throws Exception {
         PrototypeTypeClass bean = container.getBean(PrototypeTypeClass.class);
         assertNotSame(bean, container.getBean(PrototypeTypeClass.class));
+    }
+
+    @Test
+    public void should_be_able_to_specify_id_in_component_annotation() throws Exception {
+        Object beanWithId = container.getBeanById("beanWithId");
+        assertTrue(beanWithId instanceof BeanWithId);
+    }
+
+    @Test
+    public void should_be_able_to_specify_qualified_id_in_cons_parameter() throws Exception {
+        Object o = container.getBeanById("beanWithQualified");
+        BeanWithQualified bean = (BeanWithQualified)o;
+
+        assertSame(container.getBeanById("beanWithId"), bean.getId());
+    }
+
+    @Test
+    public void should_be_able_to_specify_qualified_id_on_field() throws Exception {
+        Object o = container.getBeanById("beanWithQualified");
+        BeanWithQualified bean = (BeanWithQualified)o;
+
+        assertSame(container.getBeanById("id2"), bean.getId2());
+    }
+
+    @Test
+    public void should_be_able_to_specify_qualified_id_in_setter() throws Exception {
+        Object o = container.getBeanById("beanWithQualified");
+        BeanWithQualified bean = (BeanWithQualified)o;
+
+        assertSame(container.getBeanById("id3"), bean.getId3());
     }
 }

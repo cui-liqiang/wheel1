@@ -14,12 +14,10 @@ import static junit.framework.TestCase.assertEquals;
 
 public class XmlBeanDefinitionParserTest {
     private XmlBeanDefinitionParser parser = new XmlBeanDefinitionParser();
-    private IocContainer container;
     private List<BeanDefinition> definitions;
 
     @Before
     public void setUp() throws Exception {
-        container = new IocContainerBuilder().withConfigFile("bean-definition.xml").build();
         definitions = parser.parse("bean-definition.xml");
     }
 

@@ -15,11 +15,7 @@ public class IocContainer {
     private ClassFilter annotationFilter = new ClazzAnnotationFilter();
     private XmlBeanDefinitionParser parser = new XmlBeanDefinitionParser();
 
-    public IocContainer(String packageName) throws Exception {
-        initAnnotatedBeanDefinitions(packageName);
-    }
-
-    public IocContainer(String packageName, String configFile) throws Exception {
+    IocContainer(String packageName, String configFile) throws Exception {
         initAnnotatedBeanDefinitions(packageName);
         initXmlBeanDefinitions(configFile);
     }
@@ -82,6 +78,6 @@ public class IocContainer {
                 return definition.getBean(this);
             }
         }
-        throw new Exception("Cannot find a bean with id " + ref + " existing. Maybe you forget to config it in xml or in @Component");
+        throw new Exception("Cannot find a bean with id " + ref + " . Maybe you forget to config it in xml or in @Component");
     }
 }
