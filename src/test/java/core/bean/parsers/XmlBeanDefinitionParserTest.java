@@ -3,12 +3,9 @@ package core.bean.parsers;
 import core.BeanDefinition;
 import core.IocContainer;
 import core.IocContainerBuilder;
-import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import testpackage.Demo1;
 import testpackage.NoComponentAnnotation;
-import testpackage.nested.Demo2;
 
 import java.util.List;
 
@@ -22,8 +19,8 @@ public class XmlBeanDefinitionParserTest {
 
     @Before
     public void setUp() throws Exception {
-        container = new IocContainerBuilder().withConfigFile("demo2-bean-definition.xml").build();
-        definitions = parser.parse("demo2-bean-definition.xml");
+        container = new IocContainerBuilder().withConfigFile("bean-definition.xml").build();
+        definitions = parser.parse("bean-definition.xml");
     }
 
     @Test

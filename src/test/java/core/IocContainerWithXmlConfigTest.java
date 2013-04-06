@@ -14,7 +14,7 @@ public class IocContainerWithXmlConfigTest {
 
     @Before
     public void setUp() throws Exception {
-        container = new IocContainerBuilder().withConfigFile("demo2-bean-definition.xml").build();
+        container = new IocContainerBuilder().withConfigFile("bean-definition.xml").build();
     }
 
     @Test
@@ -57,5 +57,10 @@ public class IocContainerWithXmlConfigTest {
     public void should_be_singleton_scope_by_default() throws Exception {
         Object o = container.getBeanById("setterInject");
         assertSame(o, container.getBeanById("setterInject"));
+    }
+
+    @Test(expected = Exception.class)
+    public void should_throw_exception_when_two_beans_have_same_name() throws Exception {
+        container = new IocContainerBuilder().withConfigFile("dup-id-definition.xml").build();
     }
 }

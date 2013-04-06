@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class BeanDefinition {
-    protected String id;
+    String id;
     protected Class clazz;
     private Object instance = null;
     protected boolean prototypeScope = false;
@@ -37,6 +37,10 @@ public abstract class BeanDefinition {
 
     public boolean matchId(String id) {
         return this.id.equals(id);
+    }
+
+    public boolean exactMatchType(Class<?> type) {
+        return type.equals(clazz);
     }
 
     private boolean isInitialized() {
@@ -77,5 +81,22 @@ public abstract class BeanDefinition {
             case 10 : return constructor.newInstance(params.get(0), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7), params.get(8), params.get(9));
             default: throw new Exception("too many constructor parameters");
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BeanDefinition)) return false;
+
+        BeanDefinition that = (BeanDefinition) o;
+
+        if (id != null ? !id.equals(that.id) : that.id != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
     }
 }

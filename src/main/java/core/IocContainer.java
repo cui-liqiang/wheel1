@@ -6,11 +6,12 @@ import core.classfilter.ClazzAnnotationFilter;
 import util.ClassPathUtil;
 
 import java.lang.reflect.Modifier;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class IocContainer {
-    private List<BeanDefinition> definitions = new LinkedList<BeanDefinition>();
+    private Set<BeanDefinition> definitions = new HashSet<BeanDefinition>();
     private ClassFilter annotationFilter = new ClazzAnnotationFilter();
     private XmlBeanDefinitionParser parser = new XmlBeanDefinitionParser();
 
@@ -25,12 +26,33 @@ public class IocContainer {
 
     private void initXmlBeanDefinitions(String configFile) throws Exception {
         if(configFile == null) return;
-        definitions.addAll(parser.parse(configFile));
+        addAllWithIdCheck(parser.parse(configFile));
+    }
+
+    private void addAllWithIdCheck(List<BeanDefinition> definitions) throws Exception {
+        for (BeanDefinition definition : definitions) {
+            addWithIdCheck(definition);
+        }
+    }
+
+    private void addWithIdCheck(BeanDefinition definition) throws Exception {
+        if(this.definitions.contains(definition)) {
+            throw new Exception("Duplicated bean definition with id \"" + definition.id + "\"");
+        }
+        this.definitions.add(definition);
     }
 
     public <T> T getBean(Class<T> type) throws Exception {
-        if(Modifier.isAbstract(type.getModifiers()) || type.isInterface()) throw new Exception("Cannot get bean with type of Abstract class or Interface");
-        return (T) getBeanByCompatibleType(type);
+        return (T) getExactMatchTypeBean(type);
+    }
+
+    private Object getExactMatchTypeBean(Class<?> type) throws Exception {
+        for (BeanDefinition definition : definitions) {
+            if(definition.exactMatchType(type)) {
+                return definition.getBean(this);
+            }
+        }
+        throw new Exception("Cannot find a bean with type " + type.getName() + " existing. Maybe you forget to annotate it with @Component?");
     }
 
     public Object getBeanByCompatibleType(Class type) throws Exception {
@@ -46,7 +68,7 @@ public class IocContainer {
         for (String className : ClassPathUtil.getClassNamesInPackage(packageName)) {
             Class<?> clazz = Class.forName(className);
             if(annotationFilter.match(clazz)) continue;
-            definitions.add(new AnnotatedBeanDefinition(clazz));
+            addWithIdCheck(new AnnotatedBeanDefinition(clazz));
         }
 
         for (BeanDefinition definition : definitions) {

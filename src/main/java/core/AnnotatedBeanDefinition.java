@@ -21,6 +21,7 @@ public class AnnotatedBeanDefinition extends BeanDefinition {
     }
 
     private void extractMetaData() throws Exception {
+        id = clazz.getName() + "instance";
         prototypeScope = clazz.isAnnotationPresent(Prototype.class);
 
         for (Field declaredField : clazz.getDeclaredFields()) {
