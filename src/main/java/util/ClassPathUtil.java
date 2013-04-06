@@ -3,10 +3,13 @@ package util;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ClassPathUtil {
     public static List<String> getClassNamesInPackage(String packageName) throws Exception {
+        if(packageName == null) return Collections.emptyList();
+
         String packagePath = packageName.replace(".", "/");
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         URL url = loader.getResource(packagePath);

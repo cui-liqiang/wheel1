@@ -10,124 +10,54 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BeanDefinition {
-    private Class clazz;
-    private IocContainer container;
+public abstract class BeanDefinition {
+    protected Class clazz;
     private Object instance = null;
-    private boolean prototypeScope;
-    private List<Field> injectedFields = new ArrayList<Field>();
-    private List<Method> injectedSetter = new ArrayList<Method>();
+    protected boolean prototypeScope = false;
 
-    public BeanDefinition(Class clazz, IocContainer container) {
+    public BeanDefinition(Class clazz) throws Exception {
         this.clazz = clazz;
-        this.container = container;
     }
 
-    public void init() throws Exception {
+    public void init(IocContainer container) throws Exception {
         if(isInitialized()) return;
-        extractMetaData();
-        initBean();
+        instance = newInstance(container);
     }
 
     public boolean assignableTo(Class type) {
         return type.isAssignableFrom(clazz);
     }
 
-    public Object getBean() throws Exception {
+    public Object getBean(IocContainer container) throws Exception {
         if(!isInitialized())
-            init();
-        return prototypeScope ? newInstance() : instance;
+            init(container);
+        return prototypeScope ? newInstance(container) : instance;
     }
 
     private boolean isInitialized() {
         return instance != null;
     }
 
-    private void extractMetaData() throws Exception {
-        prototypeScope = clazz.isAnnotationPresent(Prototype.class);
-
-        for (Field declaredField : clazz.getDeclaredFields()) {
-            if(declaredField.isAnnotationPresent(Inject.class)) {
-                injectedFields.add(declaredField);
-            }
-        }
-
-        for (Method declaredMethod : clazz.getDeclaredMethods()) {
-            if(declaredMethod.isAnnotationPresent(Inject.class)) {
-                if(declaredMethod.getName().matches("set[A-Z].*]")) {
-                    throw new Exception(declaredMethod.getName() + " doesn't look like a setter");
-                }
-                injectedSetter.add(declaredMethod);
-            }
-        }
-    }
-
-    private void initBean() throws Exception {
-        instance = newInstance();
-    }
-
-    private Object newInstance() throws Exception {
-        Object instance = initConstructorInjection();
-        initSetterInjectionOnField(instance);
-        initSetterInjectionOnSetter(instance);
+    protected Object newInstance(IocContainer container) throws Exception {
+        Object instance = initConstructorInjection(container);
+        initSetterInjection(container, instance);
         return instance;
     }
 
-    private void initSetterInjectionOnSetter(Object instance) throws Exception {
-        for (Method setter : injectedSetter) {
-            Class<?>[] parameterTypes = setter.getParameterTypes();
-            if(parameterTypes.length != 1) {
-                throw new Exception(setter.getName() + " should have and only have one parameter");
-            }
-            setter.invoke(instance, container.getBeanByCompatibleType(parameterTypes[0]));
-        }
-    }
+    protected Object initConstructorInjection(IocContainer container) throws Exception {
+        Constructor constructor = determineConstructor();
+        List<Object> params = determineConsParams(container, constructor);
 
-    private void initSetterInjectionOnField(Object instance) throws Exception {
-        for (Field injectedField : injectedFields) {
-            injectField(instance, injectedField);
-        }
-    }
-
-    private void injectField(Object instance, Field declaredField) throws Exception {
-        String name = declaredField.getName();
-        Method method = clazz.getMethod("set" + StringUtils.capitalize(name), declaredField.getType());
-        method.invoke(instance, container.getBeanByCompatibleType(declaredField.getType()));
-    }
-
-    private Object initConstructorInjection() throws Exception {
-        Constructor[] constructors = filterWithInjectAnnotation(clazz.getConstructors());
-        if(constructors.length == 0) {
-            return clazz.newInstance();
-        } else if(constructors.length == 1) {
-            return initInstanceWithConstructor(constructors[0]);
-        } else {
-            throw new Exception("classes registered in IOC container must have one or zero constructor, but "
-                    + clazz.getName() +
-                    " have " + constructors.length);
-        }
-    }
-
-    private Constructor[] filterWithInjectAnnotation(Constructor[] constructors) {
-        List<Constructor> filtered = new ArrayList<Constructor>();
-        for (Constructor constructor : constructors) {
-            if(constructor.isAnnotationPresent(Inject.class)) {
-                filtered.add(constructor);
-            }
-        }
-        return filtered.toArray(new Constructor[0]);
-    }
-
-    private Object initInstanceWithConstructor(Constructor constructor) throws Exception {
-        Class[] parameterTypes = constructor.getParameterTypes();
-        List<Object> params = new ArrayList<Object>();
-        for (Class type : parameterTypes) {
-            params.add(container.getBeanByCompatibleType(type));
-        }
         return initInstanceWithParams(params, constructor);
     }
 
-    private Object initInstanceWithParams(List<Object> params, Constructor constructor) throws Exception, IllegalAccessException, InstantiationException {
+    protected abstract List<Object> determineConsParams(IocContainer container, Constructor constructor) throws Exception;
+
+    protected abstract Constructor determineConstructor() throws Exception;
+
+    protected abstract void initSetterInjection(IocContainer container, Object instance) throws Exception;
+
+    private Object initInstanceWithParams(List<Object> params, Constructor constructor) throws Exception {
         switch (params.size()) {
             case 0 : return constructor.newInstance();
             case 1 : return constructor.newInstance(params.get(0));

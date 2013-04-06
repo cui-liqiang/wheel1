@@ -6,6 +6,7 @@ import testpackage.Demo2Inter;
 @Component
 public class Demo2 implements Demo2Inter{
     public static final int TEST_VALUE = 6;
+    private int value;
 
     @Override
     public int getValue() {

@@ -5,19 +5,19 @@ import core.classfilter.ClazzAnnotationFilter;
 import util.ClassPathUtil;
 
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 public class IocContainer {
-    private String packageName;
-    private List<String> classNames = new ArrayList<String>();
     private List<BeanDefinition> definitions = new LinkedList<BeanDefinition>();
     private ClassFilter annotationFilter = new ClazzAnnotationFilter();
 
     public IocContainer(String packageName) throws Exception {
-        this.packageName = packageName;
-        init();
+        init(packageName);
+    }
+
+    public IocContainer(String packageName, String configFile) throws Exception {
+        this(packageName);
     }
 
     public <T> T getBean(Class<T> type) throws Exception {
@@ -28,23 +28,21 @@ public class IocContainer {
     public Object getBeanByCompatibleType(Class type) throws Exception {
         for (BeanDefinition definition : definitions) {
             if(definition.assignableTo(type)) {
-                return definition.getBean();
+                return definition.getBean(this);
             }
         }
         throw new Exception("Cannot find a bean with type " + type.getName() + " existing. Maybe you forget to annotate it with @Component?");
     }
 
-    private void init() throws Exception {
-        classNames = ClassPathUtil.getClassNamesInPackage(packageName);
-        for (String className : classNames) {
+    private void init(String packageName) throws Exception {
+        for (String className : ClassPathUtil.getClassNamesInPackage(packageName)) {
             Class<?> clazz = Class.forName(className);
             if(annotationFilter.match(clazz)) continue;
-
-            definitions.add(new BeanDefinition(clazz, this));
+            definitions.add(new AnnotatedBeanDefinition(clazz));
         }
 
         for (BeanDefinition definition : definitions) {
-            definition.init();
+            definition.init(this);
         }
     }
 }
