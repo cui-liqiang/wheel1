@@ -36,6 +36,8 @@ public class XmlBeanDefinitionParser {
             String className = nullOrValue(beanDesc.attribute("class"));
             String scope = nullOrValue(beanDesc.attribute("scope"));
 
+            Assert(id != null && className != null, "Cannot init bean definition since it lack of \"id\" or \"class\" attribute");
+
             List<ParamDesc> consParams = extractConsParams(beanDesc);
             Map<String, ParamDesc> setterParams = extractSetterParams(beanDesc);
 

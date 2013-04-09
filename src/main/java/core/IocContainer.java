@@ -1,11 +1,11 @@
 package core;
 
+import com.google.common.base.Predicates;
 import core.bean.parsers.XmlBeanDefinitionParser;
 import core.classfilter.ClassFilter;
 import core.classfilter.ClazzAnnotationFilter;
 import util.ClassPathUtil;
 
-import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +18,10 @@ public class IocContainer {
     IocContainer(String packageName, String configFile) throws Exception {
         initAnnotatedBeanDefinitions(packageName);
         initXmlBeanDefinitions(configFile);
+
+        for (BeanDefinition definition : definitions) {
+            definition.init(this);
+        }
     }
 
     private void initXmlBeanDefinitions(String configFile) throws Exception {
@@ -42,22 +46,44 @@ public class IocContainer {
         return (T) getExactMatchTypeBean(type);
     }
 
-    private Object getExactMatchTypeBean(Class<?> type) throws Exception {
-        for (BeanDefinition definition : definitions) {
-            if(definition.exactMatchType(type)) {
-                return definition.getBean(this);
+    private Object getExactMatchTypeBean(final Class<?> type) throws Exception {
+        return getUniqueMatchObject(type, new Predicate<BeanDefinition>() {
+            @Override
+            public boolean matches(BeanDefinition element) {
+                return element.exactMatchType(type);
             }
-        }
-        throw new Exception("Cannot find a bean with type " + type.getName() + " existing. Maybe you forget to annotate it with @Component?");
+        });
     }
 
-    public Object getBeanByCompatibleType(Class type) throws Exception {
+    public Object getBeanByCompatibleType(final Class type) throws Exception {
+        if(type.isPrimitive())
+            throw new Exception("Cannot inject primitive from container. Try use xml way to config");
+
+        return getUniqueMatchObject(type, new Predicate<BeanDefinition>() {
+            @Override
+            public boolean matches(BeanDefinition element) {
+                return element.assignableTo(type);
+            }
+        });
+    }
+
+    private Object getUniqueMatchObject(final Class type, Predicate predicate) throws Exception {
+        Object foundObject = null;
         for (BeanDefinition definition : definitions) {
-            if(definition.assignableTo(type)) {
-                return definition.getBean(this);
+            if(predicate.matches(definition)) {
+                if(foundObject == null)
+                    foundObject = definition.getBean(this);
+                else
+                    throw new Exception("Found more than one candidates for type " + type.getName() + ". Cannot determine which one to use!");
             }
         }
-        throw new Exception("Cannot find a bean with type " + type.getName() + " existing. Maybe you forget to annotate it with @Component?");
+        if(foundObject == null)
+            throw new Exception("Cannot find a bean with type " + type.getName() + " existing. Maybe you forget to annotate it with @Component?");
+        return foundObject;
+    }
+
+    interface Predicate<T> {
+        public boolean matches(T element);
     }
 
     private void initAnnotatedBeanDefinitions(String packageName) throws Exception {
@@ -65,10 +91,6 @@ public class IocContainer {
             Class<?> clazz = Class.forName(className);
             if(annotationFilter.match(clazz)) continue;
             addWithIdCheck(new AnnotatedBeanDefinition(clazz));
-        }
-
-        for (BeanDefinition definition : definitions) {
-            definition.init(this);
         }
     }
 
