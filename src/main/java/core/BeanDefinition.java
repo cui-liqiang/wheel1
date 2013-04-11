@@ -48,8 +48,10 @@ public abstract class BeanDefinition {
     }
 
     protected Object newInstance(IocContainer container) throws Exception {
+        container.startInit(this);
         Object instance = initConstructorInjection(container);
         initSetterInjection(container, instance);
+        container.finishInit();
         return instance;
     }
 

@@ -8,12 +8,14 @@ import util.ClassPathUtil;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 public class IocContainer {
     private Set<BeanDefinition> definitions = new HashSet<BeanDefinition>();
     private ClassFilter annotationFilter = new ClazzAnnotationFilter();
     private XmlBeanDefinitionParser parser = new XmlBeanDefinitionParser();
     private IocContainer parent = NullIocContainer.getInstance();
+    private Stack<BeanDefinition> queue = new Stack<BeanDefinition>();
 
     IocContainer(String packageName, String configFile, IocContainer parent) throws Exception {
         if(parent != null) this.parent = parent;
@@ -104,6 +106,18 @@ public class IocContainer {
 
     interface Predicate<T> {
         public boolean matches(T element);
+    }
 
+    public void startInit(BeanDefinition beanToInit) throws Exception {
+        for (BeanDefinition beanInQueue : queue) {
+            if (beanToInit == beanInQueue) {
+                throw new Exception("loop!");
+            }
+        }
+        queue.push(beanToInit);
+    }
+
+    public void finishInit() {
+        queue.pop();
     }
 }
