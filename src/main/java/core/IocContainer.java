@@ -32,11 +32,11 @@ public class IocContainer {
         return (T) getExactMatchTypeBean(type);
     }
 
-    public Object getBeanByCompatibleType(final Class type) throws Exception {
+    public <T> T getBeanByCompatibleType(final Class<T> type) throws Exception {
         if(type.isPrimitive())
             throw new Exception("Cannot inject primitive from container. Try use xml way to config");
 
-        return getUniqueMatchObject("type " + type.getName(), new Predicate<BeanDefinition>() {
+        return (T) getUniqueMatchObject("type " + type.getName(), new Predicate<BeanDefinition>() {
             @Override
             public boolean matches(BeanDefinition element) {
                 return element.assignableTo(type);
@@ -101,6 +101,14 @@ public class IocContainer {
             Class<?> clazz = Class.forName(className);
             if(annotationFilter.match(clazz)) continue;
             addWithIdCheck(new AnnotatedBeanDefinition(clazz));
+        }
+    }
+
+    public void register(Class clazz) {
+        try {
+            this.definitions.add(new SimpleBeanDefinition(clazz));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
