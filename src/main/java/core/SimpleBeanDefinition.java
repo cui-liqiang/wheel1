@@ -18,8 +18,13 @@ public class SimpleBeanDefinition extends BeanDefinition {
 
     public SimpleBeanDefinition(Class clazz) throws Exception {
         super(clazz);
+        extractId();
         extractInjectField();
         extractInjectSetter();
+    }
+
+    private void extractId() {
+        this.id = clazz.getName() + "instance";
     }
 
     protected void extractInjectSetter() throws Exception {
