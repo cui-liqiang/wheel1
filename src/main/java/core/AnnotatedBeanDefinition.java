@@ -6,19 +6,14 @@ import core.scopes.Prototype;
 public class AnnotatedBeanDefinition extends SimpleBeanDefinition {
 
     public AnnotatedBeanDefinition(Class clazz) throws Exception {
-        super(clazz);
+        super(clazz, clazz.isAnnotationPresent(Prototype.class));
         extractMetaData();
     }
 
     private void extractMetaData() throws Exception {
         extractId();
-        extractScope();
         extractInjectField();
         extractInjectSetter();
-    }
-
-    private void extractScope() {
-        prototypeScope = clazz.isAnnotationPresent(Prototype.class);
     }
 
     private void extractId() {

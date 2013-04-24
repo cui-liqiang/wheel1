@@ -16,8 +16,9 @@ public class SimpleBeanDefinition extends BeanDefinition {
     private List<Field> injectedFields = new ArrayList<Field>();
     private List<Method> injectedSetter = new ArrayList<Method>();
 
-    public SimpleBeanDefinition(Class clazz) throws Exception {
+    public SimpleBeanDefinition(Class clazz, boolean isProtoType) throws Exception {
         super(clazz);
+        this.prototypeScope = isProtoType;
         extractId();
         extractInjectField();
         extractInjectSetter();
@@ -29,8 +30,8 @@ public class SimpleBeanDefinition extends BeanDefinition {
 
     protected void extractInjectSetter() throws Exception {
         for (Method declaredMethod : clazz.getDeclaredMethods()) {
-            if(declaredMethod.isAnnotationPresent(Inject.class)) {
-                if(declaredMethod.getName().matches("set[A-Z].*]")) {
+            if (declaredMethod.isAnnotationPresent(Inject.class)) {
+                if (declaredMethod.getName().matches("set[A-Z].*]")) {
                     throw new Exception(declaredMethod.getName() + " doesn't look like a setter");
                 }
                 injectedSetter.add(declaredMethod);
@@ -40,7 +41,7 @@ public class SimpleBeanDefinition extends BeanDefinition {
 
     protected void extractInjectField() {
         for (Field declaredField : clazz.getDeclaredFields()) {
-            if(declaredField.isAnnotationPresent(Inject.class)) {
+            if (declaredField.isAnnotationPresent(Inject.class)) {
                 injectedFields.add(declaredField);
             }
         }
@@ -67,8 +68,8 @@ public class SimpleBeanDefinition extends BeanDefinition {
 
     private Qualified getQualifiedAnnotation(Annotation[] parameterAnnotations) {
         for (Annotation parameterAnnotation : parameterAnnotations) {
-            if(parameterAnnotation instanceof Qualified)
-                return (Qualified)parameterAnnotation;
+            if (parameterAnnotation instanceof Qualified)
+                return (Qualified) parameterAnnotation;
         }
         return null;
     }
@@ -78,11 +79,11 @@ public class SimpleBeanDefinition extends BeanDefinition {
         Constructor constructor;
 
         Constructor[] constructors = filterWithInjectAnnotation(clazz.getConstructors());
-        if(constructors.length > 1) {
+        if (constructors.length > 1) {
             throw new Exception("classes registered in IOC container must have one or zero constructor, but "
                     + clazz.getName() +
                     " have " + constructors.length);
-        } else if(constructors.length == 0) {
+        } else if (constructors.length == 0) {
             constructor = clazz.getConstructor();
         } else/* if(constructors.length == 1)*/ {
             constructor = constructors[0];
@@ -93,7 +94,7 @@ public class SimpleBeanDefinition extends BeanDefinition {
     private Constructor[] filterWithInjectAnnotation(Constructor[] constructors) {
         List<Constructor> filtered = new ArrayList<Constructor>();
         for (Constructor constructor : constructors) {
-            if(constructor.isAnnotationPresent(Inject.class)) {
+            if (constructor.isAnnotationPresent(Inject.class)) {
                 filtered.add(constructor);
             }
         }
@@ -109,15 +110,15 @@ public class SimpleBeanDefinition extends BeanDefinition {
     private void initSetterInjectionOnSetter(Object instance, IocContainer container) throws Exception {
         for (Method setter : injectedSetter) {
             Class<?>[] parameterTypes = setter.getParameterTypes();
-            if(parameterTypes.length != 1) {
+            if (parameterTypes.length != 1) {
                 throw new Exception(setter.getName() + " should have and only have one parameter");
             }
 
             Qualified qualified = setter.getAnnotation(Qualified.class);
 
             setter.invoke(instance,
-                          qualified != null ? container.getBeanById(qualified.id())
-                                            : container.getBeanByCompatibleType(parameterTypes[0]));
+                    qualified != null ? container.getBeanById(qualified.id())
+                            : container.getBeanByCompatibleType(parameterTypes[0]));
         }
     }
 
@@ -134,7 +135,7 @@ public class SimpleBeanDefinition extends BeanDefinition {
         Qualified qualified = declaredField.getAnnotation(Qualified.class);
 
         method.invoke(instance,
-                      qualified != null ? container.getBeanById(qualified.id())
-                                        : container.getBeanByCompatibleType(declaredField.getType()));
+                qualified != null ? container.getBeanById(qualified.id())
+                        : container.getBeanByCompatibleType(declaredField.getType()));
     }
 }

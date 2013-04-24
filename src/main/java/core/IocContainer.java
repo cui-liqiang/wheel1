@@ -18,7 +18,7 @@ public class IocContainer {
     private Stack<BeanDefinition> queue = new Stack<BeanDefinition>();
 
     IocContainer(String packageName, String configFile, IocContainer parent) throws Exception {
-        if(parent != null) this.parent = parent;
+        if (parent != null) this.parent = parent;
 
         initAnnotatedBeanDefinitions(packageName);
         initXmlBeanDefinitions(configFile);
@@ -33,7 +33,7 @@ public class IocContainer {
     }
 
     public <T> T getBeanByCompatibleType(final Class<T> type) throws Exception {
-        if(type.isPrimitive())
+        if (type.isPrimitive())
             throw new Exception("Cannot inject primitive from container. Try use xml way to config");
 
         return (T) getUniqueMatchObject("type " + type.getName(), new Predicate<BeanDefinition>() {
@@ -56,14 +56,14 @@ public class IocContainer {
     protected Object getUniqueMatchObject(String searchFor, Predicate predicate) throws Exception {
         Object foundObject = null;
         for (BeanDefinition definition : definitions) {
-            if(predicate.matches(definition)) {
-                if(foundObject == null)
+            if (predicate.matches(definition)) {
+                if (foundObject == null)
                     foundObject = definition.getBean(this);
                 else
                     throw new Exception("Found more than one candidates for " + searchFor + ". Cannot determine which one to use!");
             }
         }
-        if(foundObject == null) {
+        if (foundObject == null) {
             return parent.getUniqueMatchObject(searchFor, predicate);
         }
         return foundObject;
@@ -76,14 +76,14 @@ public class IocContainer {
     }
 
     private void addWithIdCheck(BeanDefinition definition) throws Exception {
-        if(this.definitions.contains(definition)) {
+        if (this.definitions.contains(definition)) {
             throw new Exception("Duplicated bean definition with id \"" + definition.id + "\"");
         }
         this.definitions.add(definition);
     }
 
     private void initXmlBeanDefinitions(String configFile) throws Exception {
-        if(configFile == null) return;
+        if (configFile == null) return;
         addAllWithIdCheck(parser.parse(configFile));
     }
 
@@ -99,14 +99,22 @@ public class IocContainer {
     private void initAnnotatedBeanDefinitions(String packageName) throws Exception {
         for (String className : ClassPathUtil.getClassNamesInPackage(packageName)) {
             Class<?> clazz = Class.forName(className);
-            if(annotationFilter.match(clazz)) continue;
+            if (annotationFilter.match(clazz)) continue;
             addWithIdCheck(new AnnotatedBeanDefinition(clazz));
         }
     }
 
     public void register(Class clazz) {
         try {
-            this.definitions.add(new SimpleBeanDefinition(clazz));
+            this.definitions.add(new SimpleBeanDefinition(clazz, false));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void register(Class clazz, boolean isProtoType) {
+        try {
+            this.definitions.add(new SimpleBeanDefinition(clazz, isProtoType));
         } catch (Exception e) {
             e.printStackTrace();
         }
